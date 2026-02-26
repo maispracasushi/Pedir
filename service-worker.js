@@ -1,4 +1,4 @@
-const CACHE_NAME = "maispracasusshi-v1";
+const CACHE_NAME = "maispracasusshi-v2";
 
 const urlsToCache = [
   "/Pedir/",

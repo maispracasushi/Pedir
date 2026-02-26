@@ -1,0 +1,572 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mais Pra Cá Sushi</title>
+<style>
+body{margin:0;background:#ffffff;color:#222;font-family:Arial;}
+header{background:#ffffff;padding:15px;text-align:center;border-bottom:1px solid #eee;position:sticky;top:0;z-index:2000;}
+.logo{max-width:180px}
+.tabs{display:flex;overflow-x:auto;background:#ffffff;position:sticky;top:80px;z-index:1500;border-bottom:1px solid #eee;}
+.tabs button{flex:none;background:none;border:none;color:#222;padding:14px 18px;cursor:pointer}
+.tabs button.active{background:#b11226;color:#ffffff;border-radius:8px;}
+.section{display:none;padding:15px}
+.item{background:#ffffff;border-radius:12px;padding:14px;margin-bottom:0;border-bottom:1px solid #e9e9e9}
+.title{font-weight:bold;color:#222}
+.price{color:#25D366;float:right}
+\.desc{color:#555;font-size:14px;margin-top:6px}
+.add{margin-top:10px;background:#b11226;border:none;color:#222;padding:10px;border-radius:8px;width:100%}
+.cart{position:fixed;bottom:15px;left:15px;right:15px;background:#25D366;padding:14px;text-align:center;border-radius:12px;font-weight:bold}
+.qty{display:flex;gap:10px;align-items:center;margin-top:10px}
+.qty button{background:#b11226;border:none;color:#222;width:32px;height:32px;border-radius:6px;font-size:18px}
+.qty span{min-width:20px;text-align:center;font-weight:bold} .item:last-child{border-bottom:none}
+.section{}
+.section.active{}
+</style>
+<script>
+let pedido={};
+
+function parseBRL(v){return parseFloat(v.replace('R$','').replace('.','').replace(',','.').trim());}
+function formatBRL(n){return 'R$ '+n.toFixed(2).replace('.',',');}
+function atualizarTotal(){
+ let t=0;
+ for(let n in pedido){ t+= parseBRL(pedido[n].preco)*pedido[n].qtd; }
+ document.getElementById('total').textContent=formatBRL(t);
+}
+function inc(el,nome,preco){
+
+ let span=el.previousElementSibling;
+ span.textContent=parseInt(span.textContent)+1;
+ pedido[nome]={preco:preco,qtd:parseInt(span.textContent)};atualizarTotal();
+}
+function dec(el,nome,preco){
+ let span=el.nextElementSibling;
+ let v=parseInt(span.textContent);
+ if(v>0){v--;span.textContent=v;}
+ if(v==0){delete pedido[nome];}else{pedido[nome]={preco:preco,qtd:v};}atualizarTotal();
+}
+function showTab(id){
+document.querySelectorAll('.section').forEach(s=>{s.style.display='none';s.classList.remove('active');});
+document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));
+let el=document.getElementById(id);el.style.display='block';setTimeout(()=>el.classList.add('active'),10);
+document.getElementById('btn_'+id).classList.add('active');
+}
+function addItem(nome,preco){
+pedido.push(nome+" - "+preco);
+alert("Adicionado: "+nome);
+}
+function enviarOriginal(){
+let linhas=[];
+for(let n in pedido){linhas.push(pedido[n].qtd+"x "+n+" - "+pedido[n].preco);}
+let obs=encodeURIComponent(document.getElementById("obs").value);
+
+let pagamento=document.getElementById("pagamento").value;
+let texto="Olá, quero pedir:%0A"+linhas.join("%0A")
++(pagamento?"%0AForma de pagamento: "+encodeURIComponent(pagamento):"")
++(pagamento=="Dinheiro" && document.getElementById("troco").value ? "%0ATroco para: "+encodeURIComponent(document.getElementById("troco").value) : "")
++(obs?"%0AObservações: "+obs:"");
+
+window.open("https://wa.me/5516981181944?text="+texto);
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+  let first=document.querySelector('.tabs button');
+  if(first){ first.click(); }
+});
+
+
+
+
+
+
+
+function atualizarStatus(){
+  const agora = new Date();
+  const dia = agora.getDay();
+  const hora = agora.getHours();
+  let aberto = !(dia === 0 || hora < 17 || hora >= 23);
+  const el = document.getElementById('statusLoja');
+  if(!el) return;
+  el.innerHTML = aberto 
+    ? "<span style='color:#2e7d32'>● ABERTO AGORA</span>"
+    : "<span style='color:#b11226'>● FECHADO</span>";
+}
+window.addEventListener('load', atualizarStatus);
+setInterval(atualizarStatus, 60000);
+
+
+function enviar(){
+  let linhas=[];let total=0;
+  for(let n in pedido){
+    linhas.push(pedido[n].qtd+"x "+n+" - "+pedido[n].preco);
+    total+=parseFloat(pedido[n].preco.replace('R$','').replace(',','.'))*pedido[n].qtd;
+  }
+  if(linhas.length===0){alert('Adicione itens');return;}
+  document.getElementById('confirmLista').innerHTML=linhas.join('<br>')+'<hr>Total: R$ '+total.toFixed(2).replace('.',',');
+  document.getElementById('confirmModal').style.display='flex';
+}
+function fecharConfirm(){document.getElementById('confirmModal').style.display='none';}
+
+document.addEventListener("DOMContentLoaded",()=>{
+const pag=document.getElementById("pagamento2");
+if(pag){
+pag.addEventListener("change",function(){
+ document.getElementById("troco_box2").style.display =
+ this.value=="Dinheiro"?"block":"none";
+});
+}
+});
+
+function confirmarEnvio(){
+ let linhas=[];
+ let total=0;
+
+ for(let n in pedido){
+   linhas.push(pedido[n].qtd+"x "+n+" - "+pedido[n].preco);
+   total+=parseFloat(pedido[n].preco.replace('R$','').replace(',','.'))*pedido[n].qtd;
+ }
+
+ const nome=document.getElementById("cliente").value;
+ const end=document.getElementById("endereco").value;
+ const ref=document.getElementById("ref").value;
+ const pag=document.getElementById("pagamento2").value;
+ const troco=document.getElementById("troco2").value;
+ const obs=document.getElementById("obs2").value;
+
+ if(!nome || !end || !pag){
+   alert("Preencha nome, endereço e pagamento");
+   return;
+ }
+
+ let texto="Olá, quero pedir:%0A%0A";
+ texto+=linhas.join("%0A");
+ texto+="%0A%0ATotal: R$ "+total.toFixed(2).replace('.',',');
+
+ texto+="%0A%0ACliente: "+encodeURIComponent(nome);
+ texto+="%0AEndereço: "+encodeURIComponent(end);
+ if(ref) texto+="%0AReferência: "+encodeURIComponent(ref);
+
+ texto+="%0AForma de pagamento: "+encodeURIComponent(pag);
+ if(pag=="Dinheiro" && troco) texto+="%0ATroco para: "+encodeURIComponent(troco);
+
+ if(obs) texto+="%0AObservações: "+encodeURIComponent(obs);
+
+ window.open("https://wa.me/5516981181944?text="+texto);
+}
+
+
+</script>
+
+<style>
+.modal, #modal, #checkoutModal{
+ position:fixed!important;
+ left:0;right:0;bottom:0;
+ max-height:90vh;
+ background:#fff;
+ border-radius:16px 16px 0 0;
+ transform:translateY(100%);
+ transition:transform .35s ease;
+ z-index:9999;
+ overflow:auto;
+ box-shadow:0 -10px 30px rgba(0,0,0,.25);
+}
+.modal.open,#modal.open,#checkoutModal.open{
+ transform:translateY(0);
+}
+.modal-backdrop{
+ position:fixed;inset:0;background:rgba(0,0,0,.45);
+ opacity:0;pointer-events:none;transition:.25s;z-index:9998;
+}
+.modal-backdrop.open{opacity:1;pointer-events:auto;}
+</style>
+
+</head>
+<body>
+
+<header>
+  <img src="logo.png" class="logo">
+  <div id="statusLoja" style="font-weight:bold;margin-top:6px;font-size:14px"></div>
+  <div style="font-size:13px;color:#666;margin-top:4px">
+    ⏱️ Tempo médio de preparo: 25 a 40 min
+  </div>
+</header>
+
+<div class="tabs">
+<button id="btn_entradas" onclick="showTab('entradas')" class="active">ENTRADAS</button>
+<button id="btn_temakis" onclick="showTab('temakis')">TEMAKIS</button>
+<button id="btn_sushis" onclick="showTab('sushis')">SUSHIS</button>
+<button id="btn_sashimis" onclick="showTab('sashimis')">SASHIMIS</button>
+<button id="btn_quentes" onclick="showTab('quentes')">QUENTES</button>
+<button id="btn_combos" onclick="showTab('combos')">COMBOS</button>
+</div>
+
+
+<div id="entradas" class="section" style="display:block">
+    <div class="item">
+        <div class="title">Sunomono <span class="price">R$ 14,99</span></div>
+        <div class="desc">200g | Pepino japonês laminado, finalizado com molho especial da casa.</div>
+        <div class="qty">
+<button onclick="dec(this,'Sunomono','R$ 14,99')">-</button>
+<span>0</span>
+<button onclick="inc(this,'Sunomono','R$ 14,99')">+</button>
+</div>
+    </div>
+    
+    <div class="item">
+        <div class="title">Ceviche de Salmão <span class="price">R$ 29,99</span></div>
+        <div class="desc">200g | Cubos de salmão fresco, cebola roxa, cebolinha e molho especial da casa.</div>
+        <div class="qty">
+<button onclick="dec(this,'Ceviche de Salmão','R$ 29,99')">-</button>
+<span>0</span>
+<button onclick="inc(this,'Ceviche de Salmão','R$ 29,99')">+</button>
+</div>
+    </div>
+    
+    <div class="item">
+        <div class="title">Carpaccio de Salmão <span class="price">R$ 29,99</span></div>
+        <div class="desc">200g | Finas lâminas de salmão, cebolinha, gergelim e molho especial da casa.</div>
+        <div class="qty">
+<button onclick="dec(this,'Carpaccio de Salmão','R$ 29,99')">-</button>
+<span>0</span>
+<button onclick="inc(this,'Carpaccio de Salmão','R$ 29,99')">+</button>
+</div>
+    </div>
+    </div>
+<div id="temakis" class="section">
+    <div class="item">
+        <div class="title">Temaki de Salmão <span class="price">R$ 26,99</span></div>
+        <div class="desc">150g | Salmão fresco (em cubos ou batido), cebolinha, arroz japonês e alga nori.<br>Acompanha shoyu e hashi.</div>
+        <div class="qty">
+<button onclick="dec(this,'Temaki de Salmão','R$ 26,99')">-</button>
+<span>0</span>
+<button onclick="inc(this,'Temaki de Salmão','R$ 26,99')">+</button>
+</div>
+    </div>
+    
+    <div class="item">
+        <div class="title">Temaki Salmão Philadelphia <span class="price">R$ 29,99</span></div>
+        <div class="desc">150g | Salmão fresco (em cubos ou batido), cream cheese, cebolinha, arroz japonês e alga nori.<br>Acompanha shoyu e hashi.</div>
+        <div class="qty">
+<button onclick="dec(this,'Temaki Salmão Philadelphia','R$ 29,99')">-</button>
+<span>0</span>
+<button onclick="inc(this,'Temaki Salmão Philadelphia','R$ 29,99')">+</button>
+</div>
+    </div>
+    
+    <div class="item">
+        <div class="title">Temaki Hot Salmão <span class="price">R$ 29,99</span></div>
+        <div class="desc">150g | Salmão grelhado e empanado, cream cheese, cebolinha, arroz japonês e alga nori.<br>Acompanha shoyu, hashi e molho tarê (20ml).</div>
+        <div class="qty">
+<button onclick="dec(this,'Temaki Hot Salmão','R$ 29,99')">-</button>
+<span>0</span>
+<button onclick="inc(this,'Temaki Hot Salmão','R$ 29,99')">+</button>
+</div>
+    </div>
+    
+    <div class="item">
+        <div class="title">Temaki Skin <span class="price">R$ 24,99</span></div>
+        <div class="desc">150g | Pele de salmão grelhada, cream cheese, cebolinha, arroz japonês e alga nori.<br>Acompanha shoyu, hashi e molho tarê (20ml).</div>
+        <div class="qty">
+<button onclick="dec(this,'Temaki Skin','R$ 24,99')">-</button>
+<span>0</span>
+<button onclick="inc(this,'Temaki Skin','R$ 24,99')">+</button>
+</div>
+    </div>
+    </div>
+<div id="sushis" class="section">
+    <div class="item">
+        <div class="title">Uramaki Filadélfia <span class="price">R$ 24,99</span></div>
+        <div class="desc">8 unidades | Salmão fresco e cream cheese, arroz por fora e alga nori.</div>
+        <div class="qty">
+<button onclick="dec(this,'Uramaki Filadélfia','R$ 24,99')">-</button>
+<span>0</span>
+<button onclick="inc(this,'Uramaki Filadélfia','R$ 24,99')">+</button>
+</div>
+    </div>
+    
+    <div class="item">
+        <div class="title">Uramaki de Salmão <span class="price">R$ 24,99</span></div>
+        <div class="desc">8 unidades | Salmão fresco envolto em arroz japonês e alga nori.</div>
+        <div class="qty">
+<button onclick="dec(this,'Uramaki de Salmão','R$ 24,99')">-</button>
+<span>0</span>
+<button onclick="inc(this,'Uramaki de Salmão','R$ 24,99')">+</button>
+</div>
+    </div>
+    
+    <div class="item">
+        <div class="title">Uramaki de Camarão <span class="price">R$ 29,99</span></div>
+        <div class="desc">8 unidades | Camarão preparado, arroz japonês e alga nori.</div>
+        <div class="qty">
+<button onclick="dec(this,'Uramaki de Camarão','R$ 29,99')">-</button>
+<span>0</span>
+<button onclick="inc(this,'Uramaki de Camarão','R$ 29,99')">+</button>
+</div>
+    </div>
+    
+    <div class="item">
+        <div class="title">Hot Roll <span class="price">R$ 24,99</span></div>
+        <div class="desc">8 unidades | Empanado crocante finalizado com molho especial da casa.</div>
+        <div class="qty">
+<button onclick="dec(this,'Hot Roll','R$ 24,99')">-</button>
+<span>0</span>
+<button onclick="inc(this,'Hot Roll','R$ 24,99')">+</button>
+</div>
+    </div>
+    
+    <div class="item">
+        <div class="title">Nigiri <span class="price">R$ 29,99</span></div>
+        <div class="desc">8 unidades | Fatias de peixe fresco sobre bolinho de arroz temperado.</div>
+        <div class="qty">
+<button onclick="dec(this,'Nigiri','R$ 29,99')">-</button>
+<span>0</span>
+<button onclick="inc(this,'Nigiri','R$ 29,99')">+</button>
+</div>
+    </div>
+    
+    <div class="item">
+        <div class="title">Hossomaki de Salmão <span class="price">R$ 24,99</span></div>
+        <div class="desc">8 unidades | Enrolado tradicional de salmão com arroz e alga nori.</div>
+        <div class="qty">
+<button onclick="dec(this,'Hossomaki de Salmão','R$ 24,99')">-</button>
+<span>0</span>
+<button onclick="inc(this,'Hossomaki de Salmão','R$ 24,99')">+</button>
+</div>
+    </div>
+    </div>
+<div id="sashimis" class="section">
+    <div class="item">
+        <div class="title">Sashimi de Salmão - Unidade <span class="price">R$ 5,99</span></div>
+        <div class="desc">Unidade — R$ 5,99</div>
+        <div class="qty">
+<button onclick="dec(this,'Sashimi de Salmão - Unidade','R$ 5,99')">-</button>
+<span>0</span>
+<button onclick="inc(this,'Sashimi de Salmão - Unidade','R$ 5,99')">+</button>
+</div>
+    </div>
+    
+    <div class="item">
+        <div class="title">Sashimi de Salmão - 5 fatias <span class="price">R$ 24,99</span></div>
+        <div class="desc">5 fatias — R$ 24,99</div>
+        <div class="qty">
+<button onclick="dec(this,'Sashimi de Salmão - 5 fatias','R$ 24,99')">-</button>
+<span>0</span>
+<button onclick="inc(this,'Sashimi de Salmão - 5 fatias','R$ 24,99')">+</button>
+</div>
+    </div>
+    
+    <div class="item">
+        <div class="title">Sashimi de Salmão - 10 fatias <span class="price">R$ 49,99</span></div>
+        <div class="desc">10 fatias — R$ 49,99</div>
+        <div class="qty">
+<button onclick="dec(this,'Sashimi de Salmão - 10 fatias','R$ 49,99')">-</button>
+<span>0</span>
+<button onclick="inc(this,'Sashimi de Salmão - 10 fatias','R$ 49,99')">+</button>
+</div>
+    </div>
+    
+    <div class="item">
+        <div class="title">Sashimi de Salmão - 15 fatias <span class="price">R$ 64,99</span></div>
+        <div class="desc">15 fatias — R$ 64,99</div>
+        <div class="qty">
+<button onclick="dec(this,'Sashimi de Salmão - 15 fatias','R$ 64,99')">-</button>
+<span>0</span>
+<button onclick="inc(this,'Sashimi de Salmão - 15 fatias','R$ 64,99')">+</button>
+</div>
+    </div>
+    </div>
+<div id="quentes" class="section">
+    <div class="item">
+        <div class="title">Gyoza <span class="price">R$ 24,99</span></div>
+        <div class="desc">8 unidades | Pastéis japoneses grelhados e crocantes.</div>
+        <div class="qty">
+<button onclick="dec(this,'Gyoza','R$ 24,99')">-</button>
+<span>0</span>
+<button onclick="inc(this,'Gyoza','R$ 24,99')">+</button>
+</div>
+    </div>
+    
+    <div class="item">
+        <div class="title">Shimeji na Manteiga <span class="price">R$ 39,99</span></div>
+        <div class="desc">400g | Cogumelos salteados na manteiga com molho especial oriental.</div>
+        <div class="qty">
+<button onclick="dec(this,'Shimeji na Manteiga','R$ 39,99')">-</button>
+<span>0</span>
+<button onclick="inc(this,'Shimeji na Manteiga','R$ 39,99')">+</button>
+</div>
+    </div>
+    
+    <div class="item">
+        <div class="title">Harumaki <span class="price">R$ 14,99</span></div>
+        <div class="desc">2 unidades | Rolinho primavera crocante.<br>Sabores: Legumes • Queijo • Queijo com goiabada</div>
+        <div class="qty">
+<button onclick="dec(this,'Harumaki','R$ 14,99')">-</button>
+<span>0</span>
+<button onclick="inc(this,'Harumaki','R$ 14,99')">+</button>
+</div>
+    </div>
+    
+    <div class="item">
+        <div class="title">Yakisoba de Frango <span class="price">R$ 31,99</span></div>
+        <div class="desc">400g | Macarrão oriental com frango, legumes e molho do chef.</div>
+        <div class="qty">
+<button onclick="dec(this,'Yakisoba de Frango','R$ 31,99')">-</button>
+<span>0</span>
+<button onclick="inc(this,'Yakisoba de Frango','R$ 31,99')">+</button>
+</div>
+    </div>
+    
+    <div class="item">
+        <div class="title">Yakisoba de Carne <span class="price">R$ 49,99</span></div>
+        <div class="desc">400g | Macarrão oriental com filé bovino, legumes e molho do chef.</div>
+        <div class="qty">
+<button onclick="dec(this,'Yakisoba de Carne','R$ 49,99')">-</button>
+<span>0</span>
+<button onclick="inc(this,'Yakisoba de Carne','R$ 49,99')">+</button>
+</div>
+    </div>
+    
+    <div class="item">
+        <div class="title">Yakisoba Misto <span class="price">R$ 54,99</span></div>
+        <div class="desc">400g | Frango e filé bovino com legumes ao molho do chef.</div>
+        <div class="qty">
+<button onclick="dec(this,'Yakisoba Misto','R$ 54,99')">-</button>
+<span>0</span>
+<button onclick="inc(this,'Yakisoba Misto','R$ 54,99')">+</button>
+</div>
+    </div>
+    
+    <div class="item">
+        <div class="title">Tempurá de Legumes <span class="price">R$ 29,99</span></div>
+        <div class="desc">8 unidades | Legumes empanados e fritos, leves e crocantes.</div>
+        <div class="qty">
+<button onclick="dec(this,'Tempurá de Legumes','R$ 29,99')">-</button>
+<span>0</span>
+<button onclick="inc(this,'Tempurá de Legumes','R$ 29,99')">+</button>
+</div>
+    </div>
+    </div>
+<div id="combos" class="section">
+    <div class="item">
+        <div class="title">Combinado Individual - 20 peças <span class="price">R$ 49,99</span></div>
+        <div class="desc">5 Sashimis de Salmão<br>5 Hot Rolls<br>5 Uramakis Filadélfia<br>5 Hossomakis de Salmão<br>Acompanha: 20g wasabi • 20g gengibre • 2 hashis • 1 shoyu</div>
+        <div class="qty">
+<button onclick="dec(this,'Combinado Individual - 20 peças','R$ 49,99')">-</button>
+<span>0</span>
+<button onclick="inc(this,'Combinado Individual - 20 peças','R$ 49,99')">+</button>
+</div>
+    </div>
+    
+    <div class="item">
+        <div class="title">Combinado Casal - 40 peças <span class="price">R$ 99,99</span></div>
+        <div class="desc">10 Sashimis de Salmão<br>5 Uramakis Filadélfia<br>5 Hossomakis de Salmão<br>5 Hot Rolls Tradicional<br>5 Hot Rolls com Couve<br>5 Hot Rolls com Alho-poró<br>5 Nigiris de Salmão<br>5 Nigiris Skin<br>5 Uramakis Skin Especial<br>Acompanha: 50g wasabi • 50g gengibre • 4 hashis • 2 shoyus</div>
+        <div class="qty">
+<button onclick="dec(this,'Combinado Casal - 40 peças','R$ 99,99')">-</button>
+<span>0</span>
+<button onclick="inc(this,'Combinado Casal - 40 peças','R$ 99,99')">+</button>
+</div>
+    </div>
+    
+    <div class="item">
+        <div class="title">Combinado Família Premium - 60 peças <span class="price">R$ 169,99</span></div>
+        <div class="desc">10 Sashimis de Salmão<br>10 Uramakis Filadélfia<br>10 Hossomakis de Salmão<br>10 Nigiris de Salmão<br>10 Hot Rolls Filadélfia<br>10 Uramakis de Camarão<br>Acompanha: 50g wasabi • 50g gengibre • 4 hashis • 4 shoyus</div>
+        <div class="qty">
+<button onclick="dec(this,'Combinado Família Premium - 60 peças','R$ 169,99')">-</button>
+<span>0</span>
+<button onclick="inc(this,'Combinado Família Premium - 60 peças','R$ 169,99')">+</button>
+</div>
+    </div>
+    
+    <div class="item">
+        <div class="title">Combinado Hot - 30 peças <span class="price">R$ 59,99</span></div>
+        <div class="desc">5 Hot Couve<br>5 Hot Tradicional<br>5 Hot Temperado<br>5 Hot Alho-poró<br>5 Hot One<br>5 Hot Especial da Casa<br>Acompanha: 50g wsabi, 50g gengibre, 2 hashi 2 shoyu.</div>
+        <div class="qty">
+<button onclick="dec(this,'Combinado Hot - 30 peças','R$ 49,99')">-</button>
+<span>0</span>
+<button onclick="inc(this,'Combinado Hot - 30 peças','R$ 49,99')">+</button>
+</div>
+    </div>
+    
+    <div class="item">
+        <div class="title">Combinado Joe - 24 peças <span class="price">R$ 59,99</span></div>
+        <div class="desc">4 Joe Salmão<br>4 Joe Alho-poró<br>4 Joe Couve<br>4 Joe com Geleia<br>4 Joe Light<br>4 Joe Rúcula com Mostarda<br>Acompanha: 50g wsabi, 50g gengibre, 2 hashi 2 shoyu.</div>
+        <div class="qty">
+<button onclick="dec(this,'Combinado Joe - 24 peças','R$ 59,99')">-</button>
+<span>0</span>
+<button onclick="inc(this,'Combinado Joe - 24 peças','R$ 59,99')">+</button>
+</div>
+    </div>
+    </div>
+
+
+<div style="padding:15px">
+
+
+</div>
+<div class="cart" onclick="enviar()">Finalizar pedido no WhatsApp • Total: <span id="total">R$ 0,00</span></div>
+
+
+
+
+<div id="confirmModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:5000;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:12px;padding:16px;width:90%;max-width:380px;max-height:90vh;overflow:auto">
+    <h3>Confirme seu pedido</h3>
+    <div id="confirmLista" style="font-size:14px;margin:10px 0;"></div>
+
+    <label>Nome:</label>
+    <input id="cliente" style="width:100%;height:42px;border-radius:8px;border:1px solid #ddd;margin:6px 0 12px 0;padding:8px">
+
+    <label>Endereço:</label>
+    <input id="endereco" style="width:100%;height:42px;border-radius:8px;border:1px solid #ddd;margin:6px 0 12px 0;padding:8px">
+
+    <label>Referência:</label>
+    <input id="ref" style="width:100%;height:42px;border-radius:8px;border:1px solid #ddd;margin:6px 0 12px 0;padding:8px">
+
+    <label>Forma de pagamento:</label>
+    <select id="pagamento2" style="width:100%;height:45px;border-radius:8px;margin:6px 0 12px 0;border:1px solid #ddd;padding:8px">
+      <option value="">Selecione</option>
+      <option>PIX</option>
+      <option>Dinheiro</option>
+      <option>Cartão de Débito</option>
+      <option>Cartão de Crédito</option>
+    </select>
+
+    <div id="troco_box2" style="display:none;margin-bottom:12px">
+      <label>Troco para quanto?</label>
+      <input id="troco2" type="text" placeholder="Ex: 100,00" style="width:100%;height:42px;border-radius:8px;border:1px solid #ddd;margin-top:6px;padding:8px">
+    </div>
+
+    <label>Observações:</label>
+    <textarea id="obs2" style="width:100%;height:80px;border-radius:8px;margin-top:6px;border:1px solid #ddd;padding:10px"></textarea>
+
+    <div style="display:flex;gap:10px;margin-top:14px">
+      <button onclick="fecharConfirm()" style="flex:1;padding:10px;border-radius:8px;border:1px solid #ddd;background:#fff">Voltar</button>
+      <button onclick="confirmarEnvio()" style="flex:1;padding:10px;border-radius:8px;border:none;background:#25D366;color:#fff">Enviar pedido</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+
+<script>
+function abrirModal(id){
+ const m=document.getElementById(id);
+ if(!m)return;
+ let bg=document.querySelector('.modal-backdrop');
+ if(!bg){bg=document.createElement('div');bg.className='modal-backdrop';document.body.appendChild(bg);}
+ setTimeout(()=>{bg.classList.add('open');m.classList.add('open');},10);
+ bg.onclick=()=>fecharModal(id);
+}
+function fecharModal(id){
+ const m=document.getElementById(id);
+ const bg=document.querySelector('.modal-backdrop');
+ if(m)m.classList.remove('open');
+ if(bg)bg.classList.remove('open');
+}
+</script>
+
+</body>
+</html>

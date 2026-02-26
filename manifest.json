@@ -1,19 +1,20 @@
 {
   "name": "Mais Pra Cá Sushi",
   "short_name": "Mais Pra Cá",
-  "start_url": "./",
+  "start_url": "/Pedir/",
+  "scope": "/Pedir/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#b11226",
+  "background_color": "#0b0b0b",
+  "theme_color": "#0b0b0b",
   "orientation": "portrait",
   "icons": [
     {
-      "src": "icon-192.png",
+      "src": "/Pedir/icon-192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "icon-512.png",
+      "src": "/Pedir/icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
     }

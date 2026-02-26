@@ -1,7 +1,8 @@
 {
   "name": "Mais Pra Cá Sushi",
   "short_name": "Mais Pra Cá",
-  "start_url": "/",
+  "start_url": "/Pedir/",
+"scope": "/Pedir/",
   "display": "standalone",
   "background_color": "#0b0b0b",
   "theme_color": "#0b0b0b",

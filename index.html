@@ -2408,73 +2408,131 @@ window.abrirHistorico = async function(){
 
 
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-import { 
-  getAuth, 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  sendPasswordResetEmail, 
-  onAuthStateChanged, 
-  signOut 
-} from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
 
-// 🔥 COLOQUE AQUI SUAS CREDENCIAIS DO FIREBASE
+<!-- FIREBASE COMPLETO -->
+<script src="https://www.gstatic.com/firebasejs/12.10.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.10.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore-compat.js"></script>
+
+<script>
 const firebaseConfig = {
-  apiKey: "SUA_API_KEY",
-  authDomain: "SEU_AUTH_DOMAIN",
-  projectId: "SEU_PROJECT_ID",
-  storageBucket: "SEU_STORAGE_BUCKET",
-  messagingSenderId: "SEU_MESSAGING_SENDER_ID",
-  appId: "SEU_APP_ID"
+  apiKey: "AIzaSyAsrL3eJLWArVegBk4NqrL8m5DsdoA6f1Q",
+  authDomain: "estoque-daniel-san.firebaseapp.com",
+  projectId: "estoque-daniel-san",
+  storageBucket: "estoque-daniel-san.firebasestorage.app",
+  messagingSenderId: "355146085358",
+  appId: "1:355146085358:web:d20d238a253df446aa14ff"
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+firebase.initializeApp(firebaseConfig);
 
-window.fazerLoginFirebase = async function(){
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+function fazerLoginFirebase(){
   const email = document.getElementById("loginEmail").value.trim();
   const pass = document.getElementById("loginPass").value.trim();
-  try{
-    await signInWithEmailAndPassword(auth, email, pass);
-    alert("Login realizado!");
-  }catch(e){
-    alert(e.message);
-  }
+
+  auth.signInWithEmailAndPassword(email, pass)
+    .then(()=> alert("Login realizado!"))
+    .catch(e=> alert(e.message));
 }
 
-window.cadastrar = async function(){
+function cadastrar(){
   const email = document.getElementById("cadUser").value.trim();
   const pass = document.getElementById("cadPass").value.trim();
-  try{
-    await createUserWithEmailAndPassword(auth, email, pass);
-    alert("Cadastro realizado!");
-  }catch(e){
-    alert(e.message);
-  }
+
+  auth.createUserWithEmailAndPassword(email, pass)
+    .then(()=> alert("Cadastro realizado!"))
+    .catch(e=> alert(e.message));
 }
 
-window.recuperarSenha = async function(){
+function recuperarSenha(){
   const email = document.getElementById("loginEmail").value.trim();
-  await sendPasswordResetEmail(auth, email);
-  alert("Email enviado!");
+
+  auth.sendPasswordResetEmail(email)
+    .then(()=> alert("Email enviado!"))
+    .catch(e=> alert(e.message));
 }
 
-window.sairConta = async function(){
-  await signOut(auth);
+function sairConta(){
+  auth.signOut();
 }
 
-onAuthStateChanged(auth, (user) => {
+auth.onAuthStateChanged(function(user){
   if(user){
     document.getElementById("areaLogado").style.display="block";
     document.getElementById("areaDeslogado").style.display="none";
     document.getElementById("saudacao").innerText="Olá, "+user.email;
-  } else {
+
+    const clienteInput = document.getElementById("cliente");
+    if(clienteInput) clienteInput.value = user.email;
+
+  }else{
     document.getElementById("areaLogado").style.display="none";
     document.getElementById("areaDeslogado").style.display="block";
   }
 });
+
+// SALVAR PEDIDO NO FIRESTORE
+async function salvarPedidoFirestore(pedidoObj, total){
+  const user = auth.currentUser;
+  if(!user) return;
+
+  await db.collection("pedidos").add({
+    userId: user.uid,
+    email: user.email,
+    pedido: pedidoObj,
+    total: total,
+    data: firebase.firestore.FieldValue.serverTimestamp()
+  });
+}
+
+// HISTÓRICO
+async function abrirHistorico(){
+  const user = auth.currentUser;
+  if(!user){
+    alert("Faça login primeiro");
+    return;
+  }
+
+  const snapshot = await db.collection("pedidos")
+    .where("userId","==",user.uid)
+    .orderBy("data","desc")
+    .get();
+
+  if(snapshot.empty){
+    alert("Nenhum pedido encontrado.");
+    return;
+  }
+
+  let texto = "📋 Histórico de Pedidos:\n\n";
+
+  snapshot.forEach(doc=>{
+    const p = doc.data();
+    texto += "Total: R$ "+ p.total +"\n";
+    texto += "Data: "+ (p.data ? p.data.toDate().toLocaleString() : "") +"\n\n";
+  });
+
+  alert(texto);
+}
+
+// INTEGRAR COM CONFIRMAR ENVIO
+const originalConfirmar = window.confirmarEnvio;
+
+window.confirmarEnvio = function(){
+  let total = 0;
+  for(let n in pedido){
+    total+=parseFloat(pedido[n].preco.replace('R$','').replace(',','.'))*pedido[n].qtd;
+  }
+
+  salvarPedidoFirestore(pedido, total.toFixed(2));
+
+  originalConfirmar();
+};
+
 </script>
+
 
 </body>
 </html>
